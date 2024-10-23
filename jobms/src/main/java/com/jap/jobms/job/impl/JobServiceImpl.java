@@ -3,6 +3,8 @@ package com.jap.jobms.job.impl;
 import com.jap.jobms.job.Job;
 import com.jap.jobms.job.JobRepository;
 import com.jap.jobms.job.JobService;
+import com.jap.jobms.job.client.CompanyClient;
+import com.jap.jobms.job.client.ReviewClient;
 import com.jap.jobms.job.dto.JobDTO;
 import com.jap.jobms.job.external.Company;
 import com.jap.jobms.job.external.Review;
@@ -21,22 +23,29 @@ import java.util.Optional;
 @Service
 public class JobServiceImpl implements JobService {
     private JobRepository jobRepository;
+    private CompanyClient companyClient;
+    private ReviewClient reviewClient;
 
     @Autowired
     private RestTemplate restTemplate;
-    public JobServiceImpl(JobRepository jobRepository) {
+
+
+    public JobServiceImpl(JobRepository jobRepository, CompanyClient companyClient, ReviewClient reviewClient) {
+
         this.jobRepository = jobRepository;
+        this.companyClient = companyClient;
+        this.reviewClient=reviewClient;
     }
 
 
     @Override
     public List<JobDTO> findAll() {
-        List<Job> jobs=jobRepository.findAll();
+        List<Job> jobs = jobRepository.findAll();
 
-        List<JobDTO> jobWithCompanyDTOs=new ArrayList<JobDTO>();
+        List<JobDTO> jobWithCompanyDTOs = new ArrayList<JobDTO>();
 
-        for (Job job:jobs){
-            JobDTO jobWithCompanyDTO=convertToJobWithCompanyDTO(job);
+        for (Job job : jobs) {
+            JobDTO jobWithCompanyDTO = convertToJobWithCompanyDTO(job);
             jobWithCompanyDTOs.add(jobWithCompanyDTO);
         }
         return jobWithCompanyDTOs;
@@ -44,14 +53,10 @@ public class JobServiceImpl implements JobService {
 
     public JobDTO convertToJobWithCompanyDTO(Job job) {
 
-        Company company=restTemplate.getForObject("http://COMPANYMS:8081/companies/"+job.getCompanyId(),
-                Company.class);
-        ResponseEntity<List<Review>> reviewsResponse= restTemplate.exchange("http://REVIEWMS:8083/reviews?companyId="+job.getCompanyId(),
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<List<Review>>() {});
-        List<Review> reviews=reviewsResponse.getBody();
-        JobDTO jobWithCompanyDTO= JobMapper.mapToJobWithCompanyDTO(job,company,reviews);
+        Company company = companyClient.getCompany(job.getCompanyId());
+        List<Review> reviews=reviewClient.getReviews(job.getCompanyId());
+
+        JobDTO jobWithCompanyDTO = JobMapper.mapToJobWithCompanyDTO(job, company, reviews);
 
         return jobWithCompanyDTO;
     }
@@ -62,20 +67,19 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public JobDTO findById(Long id){
-        Job job=jobRepository.findById(id).orElse(null);
+    public JobDTO findById(Long id) {
+        Job job = jobRepository.findById(id).orElse(null);
         return convertToJobWithCompanyDTO(job);
     }
 
     @Override
-    public boolean deleteById(Long id){
-       try{
-           jobRepository.deleteById(id);
-           return true;
-       }
-       catch(Exception e){
-           return false;
-       }
+    public boolean deleteById(Long id) {
+        try {
+            jobRepository.deleteById(id);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
 
     }
 
@@ -83,17 +87,17 @@ public class JobServiceImpl implements JobService {
     public boolean update(Long id, Job updatedJob) {
         Optional<Job> jobOptional = jobRepository.findById(id);
 
-            if (jobOptional.isPresent()){
-                Job job=jobOptional.get();
-                job.setDescription(updatedJob.getDescription());
-                job.setTitle(updatedJob.getTitle());
-                job.setLocation(updatedJob.getLocation());
-                job.setMaxSalary(updatedJob.getMaxSalary());
-                job.setMinSalary(updatedJob.getMinSalary());
-                job.setCompanyId(updatedJob.getCompanyId());
-                jobRepository.save(job);
-                return true;
-            }
+        if (jobOptional.isPresent()) {
+            Job job = jobOptional.get();
+            job.setDescription(updatedJob.getDescription());
+            job.setTitle(updatedJob.getTitle());
+            job.setLocation(updatedJob.getLocation());
+            job.setMaxSalary(updatedJob.getMaxSalary());
+            job.setMinSalary(updatedJob.getMinSalary());
+            job.setCompanyId(updatedJob.getCompanyId());
+            jobRepository.save(job);
+            return true;
+        }
 
 
         return false;
