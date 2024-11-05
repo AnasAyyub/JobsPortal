@@ -9,12 +9,7 @@ import com.jap.jobms.job.dto.JobDTO;
 import com.jap.jobms.job.external.Company;
 import com.jap.jobms.job.external.Review;
 import com.jap.jobms.job.mapper.JobMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,17 +21,12 @@ public class JobServiceImpl implements JobService {
     private CompanyClient companyClient;
     private ReviewClient reviewClient;
 
-    @Autowired
-    private RestTemplate restTemplate;
-
 
     public JobServiceImpl(JobRepository jobRepository, CompanyClient companyClient, ReviewClient reviewClient) {
-
         this.jobRepository = jobRepository;
         this.companyClient = companyClient;
         this.reviewClient=reviewClient;
     }
-
 
     @Override
     public List<JobDTO> findAll() {
@@ -80,7 +70,6 @@ public class JobServiceImpl implements JobService {
         } catch (Exception e) {
             return false;
         }
-
     }
 
     @Override
@@ -98,8 +87,6 @@ public class JobServiceImpl implements JobService {
             jobRepository.save(job);
             return true;
         }
-
-
         return false;
     }
 }
